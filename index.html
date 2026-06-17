@@ -356,22 +356,26 @@ window.MBG_SUMMARY = [{"ch":1,"title":"De chemie van levende wezens","sections":
     optBtns.forEach(function(b){ b.onclick=function(){ pick(+b.dataset.i); }; });
     var nb=document.getElementById("nextBtn"); nb.onclick=next;
 
-    function pick(i){
-      if(Q.answered) return;
-      Q.answered=true; Q.picked=i;
-      var chosen=cur.opts[i], correct = chosen.letter===q.answer;
+    function showAnswered(i){
+      var correct = cur.opts[i].letter===q.answer;
       optBtns.forEach(function(b){
         var o=cur.opts[+b.dataset.i]; b.disabled=true;
         if(o.letter===q.answer) b.classList.add("correct");
         else if(+b.dataset.i===i) b.classList.add("wrong");
       });
       var fb=document.getElementById("fb");
-      if(correct){ Q.correct++; fb.className="feedback ok"; fb.innerHTML="<b>Juist!</b>"; }
-      else { Q.wrong.push(q); fb.className="feedback no"; fb.innerHTML="<b>Fout.</b> Juiste antwoord: "+esc(q.answerText); }
-      // record
-      var p=prog[q.id]||{seen:0,correct:0}; p.seen++; if(correct)p.correct++; prog[q.id]=p; save("mbg_prog",prog);
-      nb.classList.remove("hide"); nb.focus();
+      if(correct){ fb.className="feedback ok"; fb.innerHTML="<b>Juist!</b>"; }
+      else { fb.className="feedback no"; fb.innerHTML="<b>Fout.</b> Juiste antwoord: "+esc(q.answerText); }
+      nb.classList.remove("hide");
       nb.textContent = (Q.idx+1>=Q.items.length)?"Bekijk resultaat →":"Volgende →";
+    }
+    function pick(i){
+      if(Q.answered) return;
+      Q.answered=true; Q.picked=i;
+      var correct = cur.opts[i].letter===q.answer;
+      if(correct){ Q.correct++; } else { Q.wrong.push(q); }
+      var p=prog[q.id]||{seen:0,correct:0}; p.seen++; if(correct)p.correct++; prog[q.id]=p; save("mbg_prog",prog);
+      showAnswered(i); nb.focus();
     }
     function next(){ if(!Q.answered) return; Q.idx++; Q.answered=false; Q.picked=null;
       if(Q.idx>=Q.items.length){ Q.done=true; } renderQuiz(); }
@@ -383,6 +387,8 @@ window.MBG_SUMMARY = [{"ch":1,"title":"De chemie van levende wezens","sections":
         if(idx>=0 && idx<cur.opts.length){ pick(idx); e.preventDefault(); } }
       else if(e.key==="Enter"||e.key===" "){ next(); e.preventDefault(); }
     };
+
+    if(Q.answered) showAnswered(Q.picked);   // herstel staat bij terugkeer naar dit tabblad
   }
 
   function renderQuizResult(){
