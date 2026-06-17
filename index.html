@@ -229,6 +229,8 @@ window.MBG_SUMMARY = [{"ch":1,"title":"De chemie van levende wezens","sections":
       '</div>'+
     '</div>'+
 
+    '<p class="muted" style="margin:0 0 12px;font-size:13.5px">👀 <b id="counterVal" style="color:var(--accent-ink)">…</b> mensen hebben deze tool al gebruikt</p>'+
+
     '<div class="grid g2">'+
       modeCard("quiz","📝","Oefenexamen","Meerkeuzevragen met directe feedback. Kies hoofdstukken en oefen.")+
       modeCard("flash","🎴","Oude examenvragen","Reconstructievragen uit echte examens. Antwoord uit het hoofd, dan controleren.")+
@@ -251,6 +253,18 @@ window.MBG_SUMMARY = [{"ch":1,"title":"De chemie van levende wezens","sections":
     Array.prototype.slice.call(document.querySelectorAll("[data-mode]")).forEach(function(el){ el.onclick=function(){ go(el.dataset.mode); }; });
     var es=document.getElementById("examSimBtn"); if(es) es.onclick=function(){ startExamSim(); };
     var wb=document.getElementById("notKnownBtn"); if(wb) wb.onclick=function(){ startNotKnown(); };
+    fetchCounter();
+  }
+  function fetchCounter(){
+    if(window._mbgCount!=null){ var e0=document.getElementById("counterVal"); if(e0) e0.textContent=window._mbgCount; return; }
+    if(window._mbgCountBusy) return; window._mbgCountBusy=true;
+    var counted=load("mbg_counted",false);
+    var u="https://abacus.jasoncameron.dev/"+(counted?"get":"hit")+"/berat-mbg/gebruikers";
+    fetch(u).then(function(r){return r.json();}).then(function(d){
+      if(!counted) save("mbg_counted",true);
+      window._mbgCount=d.value; window._mbgCountBusy=false;
+      var e=document.getElementById("counterVal"); if(e) e.textContent=d.value;
+    }).catch(function(){ window._mbgCountBusy=false; var e=document.getElementById("counterVal"); if(e) e.textContent="–"; });
   }
   function modeCard(view,em,t,s){ return '<button class="mode" data-mode="'+view+'"><span class="em">'+em+'</span><b>'+t+'</b><small>'+s+'</small></button>'; }
   function examSimCard(){ return '<button class="mode" id="examSimBtn"><span class="em">⏱️</span><b>Examen-simulatie</b><small>40 willekeurige meerkeuzevragen uit alle hoofdstukken, in één sessie.</small></button>'; }
