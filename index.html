@@ -98,6 +98,12 @@
   .seclabel{display:flex;align-items:center;gap:8px;margin:26px 0 12px;font-weight:700;font-size:15px}
   .backlink{display:inline-flex;align-items:center;gap:5px;border:none;background:none;color:var(--muted);font-size:13.5px;font-weight:600;padding:6px 0;margin-bottom:4px;transition:color .2s var(--ease)}
   .backlink:hover{color:var(--accent-ink)} .backlink .ic{width:16px;height:16px}
+  .toggle{width:48px;height:28px;border-radius:999px;border:none;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .2s var(--ease)}
+  .toggle .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s var(--ease)}
+  .toggle.on{background:var(--violet)} .toggle.on .knob{left:23px}
+  .warmcard{border-color:var(--violet)!important;background:var(--violet-soft)}
+  .warmcard .ic{width:22px;height:22px;color:var(--violet);flex:none}
+  html.snappy .js-enter{animation-duration:.12s!important;animation-delay:0ms!important}
   .seclabel .ic{width:18px;height:18px;color:var(--accent-ink)}
   .seclabel .sub{font-weight:500;color:var(--muted);font-size:13px;margin-left:auto}
 
@@ -363,6 +369,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
     chevR:'<path d="m9 18 6-6-6-6"/>',
     arrowR:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
     back:'<path d="m15 18-6-6 6-6"/>',
+    heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
     check:'<path d="M20 6 9 17l-5-5"/>',
     x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     scissors:'<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',
@@ -405,7 +412,9 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
   var theme = load("mbg_theme","light");
   var modeCfg = load("mbg_mode",{track:"training",level:null});
   if(modeCfg.track==="herkansing" && !modeCfg.level) modeCfg.level="basis";
-  applyTheme();
+  var calm = load("mbg_calm",true);
+  applyTheme(); applyCalm();
+  function applyCalm(){ document.documentElement.classList.toggle("snappy", !calm); }
 
   function applyTheme(){
     document.documentElement.setAttribute("data-theme", theme);
@@ -490,8 +499,9 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
     "Goed dat je het nu tegenkomt, en niet straks op het examen."
   ];
   var PRAISE=["Juist!","Goed zo!","Helemaal correct!","Sterk!","Knap gedaan!"];
+  function wrongLead(){ return calm ? rnd(WARM) : "Fout."; }
 
-  var state = { view:"home", quiz:null, flash:null };
+  var state = { view:"home", step:"track", quiz:null, flash:null };
 
   // ---------- tabs ----------
   var TABS=[
@@ -505,7 +515,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
   var tabsEl=document.getElementById("tabs");
   tabsEl.innerHTML=TABS.map(function(t){ return '<button data-view="'+t.v+'"'+(t.v==="home"?' class="on"':'')+'>'+ic(t.icon)+'<span>'+t.label+'</span></button>'; }).join("");
   var tabBtns=Array.prototype.slice.call(tabsEl.querySelectorAll("button"));
-  tabBtns.forEach(function(b){ b.onclick=function(){ go(b.dataset.view); }; });
+  tabBtns.forEach(function(b){ b.onclick=function(){ if(b.dataset.view==="home") state.step="track"; go(b.dataset.view); }; });
   function go(v){ state.view=v; tabBtns.forEach(function(b){ b.classList.toggle("on", b.dataset.view===v); }); render(); window.scrollTo(0,0); }
 
   // =================== RENDER ===================
@@ -518,58 +528,26 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
     if(state.view==="feedback") return renderFeedback();
   }
 
-  // ---------- HOME ----------
+  // ---------- HOME (stap-voor-stap) ----------
   function renderHome(){
+    if(state.step==="herkansing") return renderHerkansing();
+    if(state.step==="practice") return renderPractice();
+    return renderTrack();
+  }
+  function brandStripHTML(){
+    return '<a class="brandstrip js-enter" href="https://berat007yildirim-ai.github.io/" title="Naar Berie’s exam space — alle vakken">'+
+      '<span class="bs-logo">B</span>'+
+      '<span class="bs-txt"><b>Berie’s exam space</b><small>Een ander vak leren? Bekijk alle vakken</small></span>'+
+      '<span class="bs-go">'+ic("arrowR")+'</span></a>';
+  }
+
+  // stap 1 — kies je traject
+  function renderTrack(){
     var dl = daysLeft();
     var seen=0, corr=0;
     D.mcq.forEach(function(q){ var p=prog[q.id]; if(p){ seen+=p.seen; corr+=p.correct; } });
     var answeredQ = D.mcq.filter(function(q){return prog[q.id];}).length;
     var knownF = D.reco.filter(function(q){return flash[q.id]==="known";}).length;
-    var herk = modeCfg.track==="herkansing";
-
-    var trackHTML =
-      '<div class="tracks">'+
-        '<button class="track js-enter'+(!herk?" on":"")+'" data-track="training">'+
-          '<span class="chk">'+ic("check")+'</span>'+
-          '<span class="tile">'+ic("book")+'</span>'+
-          '<b>Examen Training</b>'+
-          '<small>Oefen op echt examenniveau. Vragen, directe feedback en je voortgang per hoofdstuk.</small>'+
-          '<span class="go">Normaal niveau '+ic("arrowR")+'</span>'+
-        '</button>'+
-        '<button class="track alt js-enter'+(herk?" on":"")+'" data-track="herkansing">'+
-          '<span class="chk">'+ic("check")+'</span>'+
-          '<span class="tile">'+ic("sprout")+'</span>'+
-          '<b>Herkansing Support</b>'+
-          '<small>Rustig weer opbouwen met hints, extra uitleg en aanmoediging. Kies daarna je niveau.</small>'+
-          '<span class="go">Met begeleiding '+ic("arrowR")+'</span>'+
-        '</button>'+
-      '</div>'+
-      '<div class="reveal'+(herk?" open":"")+'" id="levelReveal"><div><div class="levels">'+
-          '<button class="level'+(modeCfg.level==="basis"?" on":"")+'" data-level="basis">'+
-            '<span class="lic">'+ic("sprout")+'</span><span><b>Focus op de basis</b><small>Makkelijker: hints, een 50/50-hulp en automatisch extra uitleg na elk antwoord.</small></span></button>'+
-          '<button class="level'+(modeCfg.level==="uitdagend"?" on":"")+'" data-level="uitdagend">'+
-            '<span class="lic">'+ic("target")+'</span><span><b>Uitdagend niveau</b><small>Geen hulpmiddelen, wel de warme feedback. Test of je het echt zelf kunt.</small></span></button>'+
-        '</div></div></div>';
-
-    var n = D.mcq.filter(notKnown).length, done=D.mcq.length-n;
-    var practiceHTML =
-      '<div class="seclabel" id="practiceAnchor">'+ic("rocket")+'Waarmee wil je oefenen?<span class="sub">'+modeLabel()+'</span></div>'+
-      '<div class="grid g2">'+
-        modeCard("quiz","book","Oefenexamen","Meerkeuzevragen met directe feedback. Kies je hoofdstukken.")+
-        modeCard("flash","layers","Oude examenvragen","Echte reconstructievragen uit examens — nu als meerkeuze.")+
-      '</div>'+
-      '<div class="grid g2" style="margin-top:14px">'+
-        '<button class="mode js-enter" id="examSimBtn"><span class="me">'+ic("timer")+'</span><b>Examen-simulatie</b><small>40 willekeurige vragen uit alle hoofdstukken, in één sessie.</small></button>'+
-        '<button class="mode js-enter" id="notKnownBtn"'+(n?"":' disabled')+'><span class="me">'+ic("target")+'</span><b>Vragen die je nog niet kent</b><small>'+(n? n+' vragen nog te leren · '+done+' al beheerst.':'Top! Je hebt alle vragen al eens juist beantwoord. 🎉')+'</small></button>'+
-      '</div>';
-
-    var brandStrip =
-      '<a class="brandstrip js-enter" href="https://berat007yildirim-ai.github.io/" title="Naar Berie’s exam space — alle vakken">'+
-        '<span class="bs-logo">B</span>'+
-        '<span class="bs-txt"><b>Berie’s exam space</b><small>Een ander vak leren? Bekijk alle vakken</small></span>'+
-        '<span class="bs-go">'+ic("arrowR")+'</span>'+
-      '</a>';
-
     var html =
       '<div class="hero js-enter">'+
         '<div class="count"><b>'+(dl<0?"–":dl)+'</b><span>'+(dl===1?"dag te gaan":(dl<0?"examen voorbij":"dagen te gaan"))+'</span></div>'+
@@ -579,30 +557,80 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
         '</div>'+
       '</div>'+
       '<p class="visits">'+ic("sparkles")+'<span><b id="counterVal" style="color:var(--accent-ink)"><span class="skel"></span></b> mensen hebben deze tool al gebruikt</span></p>'+
-      brandStrip+
-
-      '<div class="seclabel">'+ic("sparkles")+'Kies je manier van oefenen</div>'+
-      trackHTML+
-      practiceHTML+
-
+      brandStripHTML()+
+      '<div class="seclabel">'+ic("sparkles")+'Hoe wil je oefenen?</div>'+
+      '<div class="tracks">'+
+        '<button class="track js-enter" data-track="training">'+
+          '<span class="tile">'+ic("book")+'</span>'+
+          '<b>Examen Training</b>'+
+          '<small>Oefen op echt examenniveau. Directe feedback en je voortgang per hoofdstuk.</small>'+
+          '<span class="go">Normaal niveau '+ic("arrowR")+'</span>'+
+        '</button>'+
+        '<button class="track alt js-enter" data-track="herkansing">'+
+          '<span class="tile">'+ic("sprout")+'</span>'+
+          '<b>Herkansing</b>'+
+          '<small>Rustig weer opbouwen, met begeleiding en aanmoediging. Jij bepaalt het tempo.</small>'+
+          '<span class="go">Met begeleiding '+ic("arrowR")+'</span>'+
+        '</button>'+
+      '</div>'+
       '<div class="card pad js-enter" style="margin-top:22px">'+
         '<div class="row" style="justify-content:space-between"><b>Jouw voortgang</b>'+
           '<button class="iconbtn" id="resetBtn">'+ic("refresh")+'<span>Reset</span></button></div>'+
-        '<p class="muted" style="font-size:13px;margin:9px 0 6px">Meerkeuze: '+answeredQ+'/'+D.mcq.length+' vragen geoefend · '+pct(corr,seen)+'% juist · Oude examenvragen gekend: '+knownF+'/'+D.reco.length+'</p>'+
+        '<p class="muted" style="font-size:13px;margin:9px 0 6px">Meerkeuze: '+answeredQ+'/'+D.mcq.length+' geoefend · '+pct(corr,seen)+'% juist · Oude examenvragen gekend: '+knownF+'/'+D.reco.length+'</p>'+
         chapterBars()+
       '</div>';
     setHTML(html);
-
-    document.getElementById("examInp").onchange=function(e){ save("mbg_exam", e.target.value); renderHome(); };
-    document.getElementById("resetBtn").onclick=function(){ if(confirm("Alle voortgang wissen?")){ prog={}; flash={}; save("mbg_prog",prog); save("mbg_flash",flash); renderHome(); } };
+    document.getElementById("examInp").onchange=function(e){ save("mbg_exam", e.target.value); renderTrack(); };
+    document.getElementById("resetBtn").onclick=function(){ if(confirm("Alle voortgang wissen?")){ prog={}; flash={}; save("mbg_prog",prog); save("mbg_flash",flash); renderTrack(); } };
     Array.prototype.slice.call(document.querySelectorAll(".track")).forEach(function(el){
-      el.onclick=function(){ setTrack(el.dataset.track); updateModeUI(); }; });
+      el.onclick=function(){ var t=el.dataset.track; setTrack(t); state.step=(t==="herkansing"?"herkansing":"practice"); renderHome(); window.scrollTo(0,0); }; });
+    fetchCounter();
+  }
+
+  // stap 2 (herkansing) — warm onthaal + rustige modus + niveau
+  function renderHerkansing(){
+    var html=
+      '<button class="backlink" id="backBtn">'+ic("back")+'Terug</button>'+
+      '<div class="seclabel" style="margin-top:2px">'+ic("sprout")+'Herkansing</div>'+
+      (calm ? '<div class="card pad warmcard js-enter"><div class="row" style="gap:11px;flex-wrap:nowrap;align-items:flex-start">'+ic("heart")+'<div><b>Een nieuwe kans — rustig aan.</b><p class="muted" style="margin:5px 0 0;font-size:13.5px">Herkansen betekent niet dat je het niet kunt. We bouwen het samen rustig op, stap voor stap. Jij kunt dit. 💚</p></div></div></div>' : '')+
+      '<div class="card pad js-enter" style="margin-top:12px"><div class="row" style="justify-content:space-between;align-items:center;gap:14px">'+
+        '<div><b>Rustige modus</b><div class="muted" style="font-size:12.5px">Aanmoediging, uitleg en kalme sfeer. Zet uit als je liever recht-voor-z’n-raap oefent.</div></div>'+
+        '<button class="toggle'+(calm?" on":"")+'" id="calmToggle" role="switch" aria-checked="'+(calm?"true":"false")+'" aria-label="Rustige modus aan of uit"><span class="knob"></span></button>'+
+      '</div></div>'+
+      '<div class="seclabel">'+ic("target")+'Kies je niveau</div>'+
+      '<div class="levels">'+
+        '<button class="level js-enter" data-level="basis"><span class="lic">'+ic("sprout")+'</span><span><b>Focus op de basis</b><small>Makkelijker: hints, een 50/50-hulp en automatisch extra uitleg na elk antwoord.</small></span></button>'+
+        '<button class="level js-enter" data-level="uitdagend"><span class="lic">'+ic("target")+'</span><span><b>Uitdagend niveau</b><small>Geen hulpmiddelen — test of je het echt zelf kunt.'+(calm?" De aanmoediging blijft.":"")+'</small></span></button>'+
+      '</div>';
+    setHTML(html);
+    document.getElementById("backBtn").onclick=function(){ state.step="track"; renderHome(); window.scrollTo(0,0); };
+    document.getElementById("calmToggle").onclick=function(){ calm=!calm; save("mbg_calm",calm); applyCalm(); renderHerkansing(); };
     Array.prototype.slice.call(document.querySelectorAll(".level")).forEach(function(el){
-      el.onclick=function(){ setLevel(el.dataset.level); updateModeUI(); }; });
+      el.onclick=function(){ setTrack("herkansing"); setLevel(el.dataset.level); state.step="practice"; renderHome(); window.scrollTo(0,0); }; });
+  }
+
+  // stap 3 — waarmee oefen je
+  function renderPractice(){
+    var n = D.mcq.filter(notKnown).length, done=D.mcq.length-n;
+    var herk = modeCfg.track==="herkansing";
+    var html=
+      '<button class="backlink" id="backBtn">'+ic("back")+'Terug</button>'+
+      modeBanner()+
+      '<div class="seclabel">'+ic("rocket")+'Waarmee wil je oefenen?</div>'+
+      '<div class="grid g2">'+
+        modeCard("quiz","book","Oefenexamen","Meerkeuzevragen met directe feedback. Kies je hoofdstukken.")+
+        modeCard("flash","layers","Oude examenvragen","Echte reconstructievragen uit examens — nu als meerkeuze.")+
+      '</div>'+
+      '<div class="grid g2" style="margin-top:14px">'+
+        '<button class="mode js-enter" id="examSimBtn"><span class="me">'+ic("timer")+'</span><b>Examen-simulatie</b><small>40 willekeurige vragen uit alle hoofdstukken, in één sessie.</small></button>'+
+        '<button class="mode js-enter" id="notKnownBtn"'+(n?"":' disabled')+'><span class="me">'+ic("target")+'</span><b>Vragen die je nog niet kent</b><small>'+(n? n+' vragen nog te leren · '+done+' al beheerst.':'Top! Je hebt alle vragen al eens juist beantwoord. 🎉')+'</small></button>'+
+      '</div>';
+    setHTML(html);
+    document.getElementById("backBtn").onclick=function(){ state.step=(herk?"herkansing":"track"); renderHome(); window.scrollTo(0,0); };
+    bindBanner();
     Array.prototype.slice.call(document.querySelectorAll("[data-mode]")).forEach(function(el){ el.onclick=function(){ go(el.dataset.mode); }; });
     var es=document.getElementById("examSimBtn"); if(es) es.onclick=function(){ startExamSim(); };
     var wb=document.getElementById("notKnownBtn"); if(wb && !wb.disabled) wb.onclick=function(){ startNotKnown(); };
-    fetchCounter();
   }
   function fetchCounter(){
     var e0=document.getElementById("counterVal");
@@ -637,7 +665,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
     return '<div class="modebanner'+(herk?" v":"")+'">'+ic(herk?"sprout":"book")+'<span>'+modeLabel()+'</span>'+
       '<a id="changeModeLink">wijzig</a></div>';
   }
-  function bindBanner(){ var l=document.getElementById("changeModeLink"); if(l) l.onclick=function(){ go("home"); }; }
+  function bindBanner(){ var l=document.getElementById("changeModeLink"); if(l) l.onclick=function(){ state.step="track"; go("home"); }; }
 
   // =================== QUIZ (MCQ) ===================
   function renderQuizGate(){
@@ -742,7 +770,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
       var aids=document.getElementById("aids"); if(aids) aids.classList.add("hide");
       var fb=document.getElementById("fb");
       if(correct){ fb.className="feedback ok"; fb.innerHTML="<b>"+rnd(PRAISE)+" ✓</b>"; }
-      else { fb.className="feedback no"; fb.innerHTML="<b>"+rnd(WARM)+"</b><span class=\"sub\">Juiste antwoord: "+esc(q.answerText)+"</span>"; }
+      else { fb.className="feedback no"; fb.innerHTML="<b>"+wrongLead()+"</b><span class=\"sub\">Juiste antwoord: "+esc(q.answerText)+"</span>"; }
       // Waarom-knop
       var why=document.createElement("div"); why.style.marginTop="2px";
       why.innerHTML='<button class="whybtn" id="whyBtn">'+ic("help")+'Waarom?</button><div id="whyHolder"></div>';
@@ -864,7 +892,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
       optBtns.forEach(function(b){ var bi=+b.dataset.i; b.disabled=true; b.classList.remove("dim"); if(cur.opts[bi].ok)b.classList.add("correct"); else if(bi===i)b.classList.add("wrong"); });
       var aids=document.getElementById("aids"); if(aids) aids.classList.add("hide");
       var ok=cur.opts[i].ok; var fb=document.getElementById("fb"); fb.className="feedback "+(ok?"ok":"no");
-      fb.innerHTML=ok?"<b>"+rnd(PRAISE)+" ✓</b>":"<b>"+rnd(WARM)+"</b><span class=\"sub\">Juiste antwoord: "+esc(q.answer)+"</span>";
+      fb.innerHTML=ok?"<b>"+rnd(PRAISE)+" ✓</b>":"<b>"+wrongLead()+"</b><span class=\"sub\">Juiste antwoord: "+esc(q.answer)+"</span>";
       var why=document.createElement("div"); why.innerHTML='<button class="whybtn" id="whyBtn">'+ic("help")+'Waarom?</button><div id="whyHolder"></div>'; fb.appendChild(why);
       var wbtn=document.getElementById("whyBtn"), wholder=document.getElementById("whyHolder");
       function openWhy(){ wholder.innerHTML=whyHTML(q.ch,q.question,q.answer); wbtn.classList.add("hide"); bindWhy(wholder); }
