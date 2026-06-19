@@ -636,6 +636,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
     var es=document.getElementById("examSimBtn"); if(es) es.onclick=function(){ startExamSim(); };
     var wb=document.getElementById("notKnownBtn"); if(wb && !wb.disabled) wb.onclick=function(){ startNotKnown(); };
   }
+  function bump(ns,key){ try{ fetch("https://abacus.jasoncameron.dev/hit/"+ns+"/"+key).then(function(){},function(){}); }catch(e){} }
   function fetchCounter(){
     var e0=document.getElementById("counterVal");
     if(window._mbgCount!=null){ if(e0) e0.textContent=window._mbgCount; return; }
@@ -707,6 +708,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
   }
 
   function startQuiz(pool,label){
+    bump("berat-mbg", modeCfg.track==="herkansing"?"herkansing":"training");
     state.quiz = { label:label, items:pool.map(prepMCQ), idx:0, answered:false, picked:null, correct:0, wrong:[], done:false };
     renderQuiz();
   }
@@ -868,7 +870,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
     refresh();
   }
 
-  function startFlash(pool){ state.flash={items:pool.map(function(q){return {q:q,opts:recoOptions(q),fiftyDone:false,aid:false};}),idx:0,answered:false,picked:-1,correct:0,wrong:0,done:false}; renderFlash(); }
+  function startFlash(pool){ bump("berat-mbg", modeCfg.track==="herkansing"?"herkansing":"training"); state.flash={items:pool.map(function(q){return {q:q,opts:recoOptions(q),fiftyDone:false,aid:false};}),idx:0,answered:false,picked:-1,correct:0,wrong:0,done:false}; renderFlash(); }
 
   function renderFlash(){
     var F=state.flash;
