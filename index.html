@@ -95,7 +95,8 @@
   .visits .ic{width:16px;height:16px;color:var(--accent-ink)}
 
   /* section label */
-  .seclabel{display:flex;align-items:center;gap:8px;margin:26px 0 12px;font-weight:700;font-size:15px}
+  .seclabel{display:flex;align-items:center;gap:8px;margin:26px 0 12px;font-weight:700;font-size:15px;scroll-margin-top:118px}
+  .reveal{scroll-margin-top:118px}
   .seclabel .ic{width:18px;height:18px;color:var(--accent-ink)}
   .seclabel .sub{font-weight:500;color:var(--muted);font-size:13px;margin-left:auto}
 
@@ -526,7 +527,7 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
 
     var n = D.mcq.filter(notKnown).length, done=D.mcq.length-n;
     var practiceHTML =
-      '<div class="seclabel">'+ic("rocket")+'Waarmee wil je oefenen?<span class="sub">'+modeLabel()+'</span></div>'+
+      '<div class="seclabel" id="practiceAnchor">'+ic("rocket")+'Waarmee wil je oefenen?<span class="sub">'+modeLabel()+'</span></div>'+
       '<div class="grid g2">'+
         modeCard("quiz","book","Oefenexamen","Meerkeuzevragen met directe feedback. Kies je hoofdstukken.")+
         modeCard("flash","layers","Oude examenvragen","Echte reconstructievragen uit examens — nu als meerkeuze.")+
@@ -561,13 +562,15 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
     document.getElementById("examInp").onchange=function(e){ save("mbg_exam", e.target.value); renderHome(); };
     document.getElementById("resetBtn").onclick=function(){ if(confirm("Alle voortgang wissen?")){ prog={}; flash={}; save("mbg_prog",prog); save("mbg_flash",flash); renderHome(); } };
     Array.prototype.slice.call(document.querySelectorAll(".track")).forEach(function(el){
-      el.onclick=function(){ setTrack(el.dataset.track); renderHome(); }; });
+      el.onclick=function(){ var t=el.dataset.track; setTrack(t); state._scrollAfter=(t==="herkansing"?"#levelReveal":"#practiceAnchor"); renderHome(); }; });
     Array.prototype.slice.call(document.querySelectorAll(".level")).forEach(function(el){
-      el.onclick=function(){ setLevel(el.dataset.level); renderHome(); }; });
+      el.onclick=function(){ setLevel(el.dataset.level); state._scrollAfter="#practiceAnchor"; renderHome(); }; });
     Array.prototype.slice.call(document.querySelectorAll("[data-mode]")).forEach(function(el){ el.onclick=function(){ go(el.dataset.mode); }; });
     var es=document.getElementById("examSimBtn"); if(es) es.onclick=function(){ startExamSim(); };
     var wb=document.getElementById("notKnownBtn"); if(wb && !wb.disabled) wb.onclick=function(){ startNotKnown(); };
     fetchCounter();
+    if(state._scrollAfter){ var tgt=document.querySelector(state._scrollAfter); state._scrollAfter=null;
+      if(tgt) setTimeout(function(){ tgt.scrollIntoView({behavior:"smooth",block:"start"}); }, 90); }
   }
   function fetchCounter(){
     var e0=document.getElementById("counterVal");
