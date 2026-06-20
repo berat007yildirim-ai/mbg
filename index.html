@@ -1017,10 +1017,10 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
       var em=document.getElementById("fbEmail").value.trim();
       var nm=document.getElementById("fbNaam").value.trim();
       var waar=document.getElementById("fbWaar").value.trim();
-      var payload={ access_key:"cbaac6dd-7382-4c16-9463-97d63d712fcf", subject:"MBG-tool: "+sel, from_name:(nm||"MBG oefentool"),
-        soort:sel, hoofdstuk_of_vraag:waar||"-", naam:nm||"-", email:em||"-", bericht:msg };
-      if(em) payload.replyto=em;
-      // vangnet: als de verzenddienst blokkeert (bv. spamfilter) of er is geen verbinding,
+      var payload={ _subject:"MBG-tool: "+sel, _template:"table", _captcha:"false",
+        Soort:sel, Hoofdstuk_of_vraag:waar||"-", Naam:nm||"-", email:em||"-", Bericht:msg };
+      if(em) payload._replyto=em;
+      // vangnet: als de verzenddienst blokkeert of er is geen verbinding,
       // bieden we een directe mailto-knop aan zodat de melding NOOIT stilletjes verdwijnt.
       function failFallback(reden){
         var body="Feedback MBG-tool%0D%0A%0D%0ASoort: "+encodeURIComponent(sel)+"%0D%0ANaam: "+encodeURIComponent(nm||"-")+"%0D%0AHoofdstuk/vraag: "+encodeURIComponent(waar||"-")+"%0D%0AE-mail: "+encodeURIComponent(em||"-")+"%0D%0A%0D%0ABericht:%0D%0A"+encodeURIComponent(msg);
@@ -1028,10 +1028,10 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
         setHTML('<div class="card pad js-enter"><h2 style="margin-top:0">Automatisch versturen lukte niet</h2><p class="muted">'+reden+' Geen zorgen — klik hieronder en je melding wordt geopend in je e-mail, helemaal klaar om te versturen:</p><a class="btn" href="'+mailto+'">'+ic("send")+'Mail mijn melding direct</a><div style="margin-top:14px"><button class="btn ghost" id="fbBack">Terug naar start</button></div></div>');
         document.getElementById("fbBack").onclick=function(){ go("home"); };
       }
-      fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload)})
+      fetch("https://formsubmit.co/ajax/Berat007yildirim@gmail.com",{method:"POST",headers:{Accept:"application/json"},body:new URLSearchParams(payload)})
         .then(function(r){return r.json();}).then(function(d){
-          if(d && d.success){ setHTML('<div class="card pad results center js-enter"><div style="font-size:42px">✅</div><h2 style="margin:6px 0">Bedankt!</h2><p class="muted">Je melding is verstuurd. We bekijken het en fixen het.</p><button class="btn" id="fbBack" style="margin-top:8px">Terug naar start</button></div>'); document.getElementById("fbBack").onclick=function(){ go("home"); }; }
-          else { failFallback("Onze verzenddienst blokkeerde het bericht."); }
+          if(d && (d.success===true||d.success==="true")){ setHTML('<div class="card pad results center js-enter"><div style="font-size:42px">✅</div><h2 style="margin:6px 0">Bedankt!</h2><p class="muted">Je melding is verstuurd. We bekijken het en fixen het.</p><button class="btn" id="fbBack" style="margin-top:8px">Terug naar start</button></div>'); document.getElementById("fbBack").onclick=function(){ go("home"); }; }
+          else { failFallback("Het automatisch versturen lukte niet."); }
         }).catch(function(){ failFallback("Er was even geen verbinding."); });
     };
   }
