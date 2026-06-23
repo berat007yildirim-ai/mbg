@@ -1286,9 +1286,9 @@ window.MBG_HACKS = {"tips":[{"h":"Actief ophalen (active recall)","t":"Lees niet
     var sel = "Fout in een vraag";
     var ta = 'width:100%;margin-top:2px';
     var html='<div class="card pad js-enter"><h2 style="margin-top:0">Feedback &amp; klachten</h2>'+
-      '<p class="muted">Zie je een fout in een vraag, heb je een idee, of werkt iets niet? Laat het hier weten — het komt rechtstreeks bij de maker terecht en wordt gefixt.</p>'+
+      '<p class="muted">Zie je een fout in een vraag, heb je een idee, of werkt iets niet? Laat het hier weten — het komt rechtstreeks bij de maker terecht en wordt gefixt. Een review of compliment mag ook: de mooiste tonen we op de hub. 💬</p>'+
       '<label class="fld">Soort melding</label>'+
-      '<div class="chips" id="fbType">'+["Fout in een vraag","Idee / verbetering","Werkt niet","Andere"].map(function(t,i){return '<button type="button" class="chip'+(i===0?" on":"")+'" data-t="'+esc(t)+'">'+t+'</button>';}).join("")+'</div>'+
+      '<div class="chips" id="fbType">'+["Fout in een vraag","Idee / verbetering","Review / compliment","Werkt niet","Andere"].map(function(t,i){return '<button type="button" class="chip'+(i===0?" on":"")+'" data-t="'+esc(t)+'">'+t+'</button>';}).join("")+'</div>'+
       '<label class="fld" for="fbWaar">Over welk hoofdstuk / welke vraag? <span class="muted">(optioneel)</span></label>'+
       '<input type="text" id="fbWaar" placeholder="bv. Hoofdstuk 6, vraag over bloedarmoede" style="'+ta+'">'+
       '<label class="fld" for="fbMsg">Je bericht</label>'+
